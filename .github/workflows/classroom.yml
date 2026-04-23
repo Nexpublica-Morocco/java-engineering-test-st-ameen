@@ -1,0 +1,50 @@
+name: Autograding Tests
+'on':
+- push
+- repository_dispatch
+permissions:
+  checks: write
+  actions: read
+  contents: read
+jobs:
+  run-autograding-tests:
+    runs-on: ubuntu-latest
+    if: github.actor != 'github-classroom[bot]'
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    - name: Java Tests
+      id: java-tests
+      uses: classroom-resources/autograding-command-grader@v1
+      with:
+        test-name: Java Tests
+        setup-command: mvn -q -e -DskipTests install
+        command: mvn test
+        timeout: 10
+        max-score: 100
+    - name: Java Compilation
+      id: java-compilation
+      uses: classroom-resources/autograding-command-grader@v1
+      with:
+        test-name: Java Compilation
+        setup-command: mvn -q -e -DskipTests package
+        command: echo "Compilation successful"
+        timeout: 10
+        max-score: 20
+    - name: Unit Tests
+      id: unit-tests
+      uses: classroom-resources/autograding-command-grader@v1
+      with:
+        test-name: Unit Tests
+        setup-command: mvn -q -e -DskipTests install
+        command: mvn test
+        timeout: 10
+        max-score: 80
+    - name: Autograding Reporter
+      uses: classroom-resources/autograding-grading-reporter@v1
+      env:
+        JAVA-TESTS_RESULTS: "${{steps.java-tests.outputs.result}}"
+        JAVA-COMPILATION_RESULTS: "${{steps.java-compilation.outputs.result}}"
+        UNIT-TESTS_RESULTS: "${{steps.unit-tests.outputs.result}}"
+      with:
+        runners: java-tests,java-compilation,unit-tests
